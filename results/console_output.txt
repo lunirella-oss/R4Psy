@@ -1,0 +1,141 @@
+按 ID 列 'id' 和 'id' 合并数据
+> # ====== 在这里插入断言 ======
+> stopifnot(nrow(comb) == 516)
+> cat("✅ 合并后样本量校验通过，nrow(comb) =", nrow(comb), "\n")
+✅ 合并后样本量校验通过，nrow(comb) = 516 
+
+cat("BFAS Openness alpha =", alpha(bfasOpen)$total$std.alpha, "\n")
+BFAS Openness alpha = 0.6987965 
+> cat("BFAS Intellect alpha =", alpha(bfasInt)$total$std.alpha, "\n")
+BFAS Intellect alpha = 0.7763397 
+> cat("NEO Openness alpha   =", alpha(neo)$total$std.alpha, "\n")
+NEO Openness alpha   = 0.7505291 
+
+ 第六步：唯一响应分析（McNemar 检验）
+> # =============================================================================
+> onlyH <- deHigh[, which(colSums(deHigh) >= 1)]
+> onlyL <- deLow[,  which(colSums(deLow)  >= 1)]
+> uniH <- colnames(onlyH)
+> uniL <- colnames(onlyL)
+> cat("高分组独有响应数：", length(setdiff(uniH, uniL)), "\n")
+高分组独有响应数： 150 
+> cat("低分组独有响应数：", length(setdiff(uniL, uniH)), "\n")
+低分组独有响应数： 102 
+> uniT <- unique(c(uniH, uniL))
+> cat("总唯一响应数：", length(uniT), "\n")
+总唯一响应数： 485 
+> oneH <- match(uniT, uniH)
+> oneL <- match(uniT, uniL)
+> chitest <- matrix(0, nrow = length(uniT), ncol = 2)
+> chitest[, 1] <- ifelse(!is.na(oneH), 1, 0)
+> chitest[, 2] <- ifelse(!is.na(oneL), 1, 0)
+> cat("高分组唯一响应占比：", colSums(chitest)[1] / length(uniT), "\n")
+高分组唯一响应占比： 0.7896907 
+> cat("低分组唯一响应占比：", colSums(chitest)[2] / length(uniT), "\n")
+低分组唯一响应占比： 0.6907216 
+> mcnemar_result <- mcnemar.test(chitest[, 1], chitest[, 2])
+> print(mcnemar_result)
+
+	McNemar's Chi-squared test with continuity correction
+
+data:  chitest[, 1] and chitest[, 2]
+McNemar's chi-squared = 8.7659, df = 1, p-value = 0.003069
+
+> effect_size <- sqrt(mcnemar_result$statistic / length(uniT))
+> cat("McNemar 效应量 (phi)：", effect_size, "\n")
+McNemar 效应量 (phi)： 0.1344394 
+
+> # 第七步：响应总数与 Openness 的相关性及 t 检验
+> # =============================================================================
+> sumAll <- rowSums(comb[, -1])
+> cor_test <- cor.test(sumAll, comb$latent)
+> print(cor_test)
+
+	Pearson's product-moment correlation
+
+data:  sumAll and comb$latent
+t = 4.316, df = 514, p-value = 1.906e-05
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.1023458 0.2689897
+sample estimates:
+      cor 
+0.1870128 
+
+> sumLow  <- rowSums(deLow)
+> sumHigh <- rowSums(deHigh)
+> # 使用等方差 t 检验（pooled），以便后续 Cohen's d 严格成立
+> t_test_total <- t.test(sumHigh, sumLow, var.equal = TRUE)
+> print(t_test_total)
+
+	Two Sample t-test
+
+data:  sumHigh and sumLow
+t = 3.3366, df = 514, p-value = 0.0009095
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ 0.5482642 2.1184024
+sample estimates:
+mean of x mean of y 
+ 18.48837  17.15504 
+
+ # 第八步：网络构建
+> # =============================================================================
+
+=== 真实网络指标 ===
+> cat("低分组：ASPL =", metrics_low$ASPL, ", CC =", metrics_low$CC, ", Q =", metrics_low$Q, "\n")
+低分组：ASPL = 4.937739 , CC = 0.3820933 , Q = 0.7275282 
+> cat("高分组：ASPL =", metrics_high$ASPL, ", CC =", metrics_high$CC, ", Q =", metrics_high$Q, "\n")
+高分组：ASPL = 4.304523 , CC = 0.391457 , Q = 0.7305187 
+=== 随机网络 Z-test ===
+> cat("低分组：\n")
+低分组：
+> cat("  ASPL Z =", z_test(metrics_low$ASPL, rand_low$ASPL)["Z"], 
++     ", p =", z_test(metrics_low$ASPL, rand_low$ASPL)["p"], "\n")
+  ASPL Z = 146.6412 , p = 0 
+> cat("  CC   Z =", z_test(metrics_low$CC, rand_low$CC)["Z"], 
++     ", p =", z_test(metrics_low$CC, rand_low$CC)["p"], "\n")
+  CC   Z = 60.24261 , p = 0 
+> cat("  Q    Z =", z_test(metrics_low$Q, rand_low$Q)["Z"], 
++     ", p =", z_test(metrics_low$Q, rand_low$Q)["p"], "\n")
+  Q    Z = 45.48583 , p = 0 
+> cat("高分组：\n")
+高分组：
+> cat("  ASPL Z =", z_test(metrics_high$ASPL, rand_high$ASPL)["Z"], 
++     ", p =", z_test(metrics_high$ASPL, rand_high$ASPL)["p"], "\n")
+  ASPL Z = 116.4332 , p = 0 
+> cat("  CC   Z =", z_test(metrics_high$CC, rand_high$CC)["Z"], 
++     ", p =", z_test(metrics_high$CC, rand_high$CC)["p"], "\n")
+  CC   Z = 64.62549 , p = 0 
+> cat("  Q    Z =", z_test(metrics_high$Q, rand_high$Q)["Z"], 
++     ", p =", z_test(metrics_high$Q, rand_high$Q)["p"], "\n")
+  Q    Z = 45.59126 , p = 0 
+
+
+> # 9.3 部分节点 Bootstrap（t-test，五个比例）
+> cat("\n=== 部分节点 Bootstrap（t-test，1000次） ===\n")
+保留比例： 90 %
+  ASPL: t = -44.326 , df = 1998 , p = 1.98e-299 , Cohen's d = -1.98 
+  CC:   t = 14.825 , df = 1998 , p = 2.99e-47 , Cohen's d = 0.66 
+  Q:    t = -0.023 , df = 1998 , p = 0.981 , Cohen's d = 0 
+
+保留比例： 80 %
+  ASPL: t = -25.034 , df = 1998 , p = 1.56e-120 , Cohen's d = -1.12 
+  CC:   t = 9.949 , df = 1998 , p = 8.53e-23 , Cohen's d = 0.44 
+  Q:    t = -3.021 , df = 1998 , p = 0.00255 , Cohen's d = -0.14 
+
+保留比例： 70 %
+  ASPL: t = -12.014 , df = 1998 , p = 3.74e-32 , Cohen's d = -0.54 
+  CC:   t = 7.123 , df = 1998 , p = 1.47e-12 , Cohen's d = 0.32 
+  Q:    t = -3.261 , df = 1998 , p = 0.00113 , Cohen's d = -0.15 
+
+保留比例： 60 %
+  ASPL: t = -2.188 , df = 1998 , p = 0.0288 , Cohen's d = -0.1 
+  CC:   t = 4.192 , df = 1998 , p = 2.89e-05 , Cohen's d = 0.19 
+  Q:    t = -4.578 , df = 1998 , p = 4.98e-06 , Cohen's d = -0.2 
+
+保留比例： 50 %
+  ASPL: t = 4.33 , df = 1998 , p = 1.56e-05 , Cohen's d = 0.19 
+  CC:   t = 3.542 , df = 1998 , p = 0.000406 , Cohen's d = 0.16 
+  Q:    t = -4.643 , df = 1998 , p = 3.65e-06 , Cohen's d = -0.21 
+> 
